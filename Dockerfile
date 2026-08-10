@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -35,12 +35,26 @@ COPY docker/constraints-cu124.txt /tmp/constraints-cu124.txt
 RUN python -m pip install --upgrade pip setuptools wheel
 
 COPY . .
-RUN python -m pip install --no-deps "mjlab==1.2.0" \
-    && python -m pip install --no-deps \
+RUN python -m pip install \
+      "prettytable" \
+      "tqdm" \
+      "tyro>=1.0.1" \
+      "torchrunx>=0.3.4" \
+      "warp-lang>=1.12.0" \
       "mujoco==3.8.0" \
       "mujoco-warp==3.8.0" \
-    && python -m pip install \
+      "trimesh>=4.8.3" \
+      "viser>=1.0.24" \
+      "mediapy>=1.2.6" \
+      "imageio-ffmpeg" \
+      "numpy" \
+      "tensordict" \
+      "rsl-rl-lib==5.0.1" \
+      "tensorboard>=2.20.0" \
+      "onnxscript>=0.5.4" \
+      "wandb>=0.22.3" \
       "scipy" \
+    && python -m pip install --no-deps "mjlab==1.2.0" \
     && python -m pip install --no-deps -e .
 
 CMD ["/bin/bash"]
