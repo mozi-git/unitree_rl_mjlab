@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import wandb
 
@@ -8,6 +9,7 @@ from mjlab.rl.exporter_utils import (
   get_base_metadata,
 )
 from mjlab.rl.runner import MjlabOnPolicyRunner
+from src.utils.clearml import upload_clearml_artifact
 
 
 class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
@@ -15,6 +17,9 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
 
   def save(self, path: str, infos=None):
     super().save(path, infos)
+    if self.cfg.get("clearml_enabled"):
+      upload_clearml_artifact(os.path.basename(path), Path(path))
+
     policy_path = path.split("model")[0]
     filename = "policy.onnx"
     self.export_policy_to_onnx(policy_path, filename)
@@ -26,3 +31,5 @@ class VelocityOnPolicyRunner(MjlabOnPolicyRunner):
     attach_metadata_to_onnx(onnx_path, metadata)
     if self.logger.logger_type in ["wandb"]:
       wandb.save(policy_path + filename, base_path=os.path.dirname(policy_path))
+    if self.cfg.get("clearml_enabled"):
+      upload_clearml_artifact(filename, Path(onnx_path))

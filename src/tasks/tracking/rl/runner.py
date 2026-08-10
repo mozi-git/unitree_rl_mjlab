@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import cast
 
 import torch
@@ -13,6 +14,7 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.tracking.mdp import MotionCommand
+from src.utils.clearml import upload_clearml_artifact
 
 
 class _OnnxMotionModel(nn.Module):
@@ -91,6 +93,9 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
 
   def save(self, path: str, infos=None):
     super().save(path, infos)
+    if self.cfg.get("clearml_enabled"):
+      upload_clearml_artifact(os.path.basename(path), Path(path))
+
     policy_path = path.split("model")[0]
     filename = policy_path.split("/")[-2] + ".onnx"
     self.export_motion_policy_to_onnx(policy_path, filename)
@@ -114,3 +119,6 @@ class MotionTrackingOnPolicyRunner(MjlabOnPolicyRunner):
       if self.registry_name is not None:
         wandb.run.use_artifact(self.registry_name)  # type: ignore
         self.registry_name = None
+    if self.cfg.get("clearml_enabled"):
+      upload_clearml_artifact(filename, Path(policy_path) / filename)
+      upload_clearml_artifact("policy.onnx", Path(policy_path) / "policy.onnx")

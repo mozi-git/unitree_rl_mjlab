@@ -18,6 +18,11 @@ from mjlab.utils.gpu import select_gpus
 from mjlab.utils.os import dump_yaml, get_checkpoint_path
 from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
+from src.utils.clearml import (
+  connect_clearml_configuration,
+  get_clearml_checkpoint_path,
+  init_clearml_task,
+)
 
 
 @dataclass(frozen=True)
@@ -29,6 +34,11 @@ class TrainConfig:
   video_length: int = 200
   video_interval: int = 2000
   enable_nan_guard: bool = False
+  clearml: bool = False
+  clearml_project: str = "mjlab"
+  clearml_tags: tuple[str, ...] = ()
+  clearml_task_id: str | None = None
+  clearml_checkpoint_name: str | None = None
   torchrunx_log_dir: str | None = None
   gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
 
@@ -97,6 +107,20 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   resume_path: Path | None = None
   if cfg.agent.resume:
+    if cfg.clearml_task_id is not None:
+      resume_path, was_cached = get_clearml_checkpoint_path(
+        log_root_path,
+        cfg.clearml_task_id,
+        cfg.clearml_checkpoint_name,
+      )
+      if rank == 0:
+        checkpoint_name = resume_path.name
+        cached_str = "cached" if was_cached else "downloaded"
+        print(
+          f"[INFO]: Loading checkpoint from ClearML: {checkpoint_name} "
+          f"(task: {cfg.clearml_task_id}, {cached_str})"
+        )
+    else:
       # Load checkpoint from local filesystem.
       resume_path = get_checkpoint_path(
         log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint
@@ -117,6 +141,56 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   agent_cfg = asdict(cfg.agent)
   env_cfg = asdict(cfg.env)
+  clearml_requested = cfg.clearml or agent_cfg.get("logger") == "clearml"
+  clearml_task_id: str | None = None
+  if rank == 0 and clearml_requested:
+    task_name = task_id if not cfg.agent.run_name else f"{task_id}_{cfg.agent.run_name}"
+    clearml_project = str(agent_cfg.get("clearml_project", cfg.clearml_project))
+    clearml_tags = tuple(agent_cfg.get("clearml_tags", cfg.clearml_tags))
+    clearml_task_id = init_clearml_task(
+      project_name=clearml_project,
+      task_name=task_name,
+      tags=clearml_tags,
+      auto_connect_frameworks={"tensorboard": True},
+    )
+    if clearml_task_id is not None:
+      connect_clearml_configuration(
+        "run",
+        {
+          "task_id": task_id,
+          "device": device,
+          "seed": seed,
+          "rank": rank,
+          "log_dir": str(log_dir),
+          "motion_file": cfg.motion_file,
+          "video": cfg.video,
+          "video_length": cfg.video_length,
+          "video_interval": cfg.video_interval,
+          "enable_nan_guard": cfg.enable_nan_guard,
+          "clearml": cfg.clearml,
+          "clearml_project": clearml_project,
+          "clearml_tags": clearml_tags,
+          "clearml_task_id": cfg.clearml_task_id,
+          "clearml_checkpoint_name": cfg.clearml_checkpoint_name,
+          "gpu_ids": cfg.gpu_ids,
+        },
+        task_id=clearml_task_id,
+      )
+      connect_clearml_configuration("agent", agent_cfg, task_id=clearml_task_id)
+      connect_clearml_configuration("env", env_cfg, task_id=clearml_task_id)
+      print(f"[INFO] ClearML task initialized: {clearml_task_id}")
+    else:
+      print(
+        "[WARN] ClearML logging requested, but the clearml package is unavailable. "
+        "Continuing with local TensorBoard logging only."
+      )
+
+  if clearml_requested:
+    # rsl_rl has no ClearML backend in this environment. Route scalars through
+    # TensorBoard and upload artifacts from the local runner hooks.
+    agent_cfg["logger"] = "tensorboard"
+    if rank == 0 and clearml_task_id is not None:
+      agent_cfg["clearml_enabled"] = True
 
   runner_cls = load_runner_cls(task_id)
   if runner_cls is None:
