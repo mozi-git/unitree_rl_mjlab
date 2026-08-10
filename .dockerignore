@@ -1,0 +1,17 @@
+.git
+.gitignore
+.cache
+__pycache__
+*.py[cod]
+
+logs
+runs
+wandb
+tmp
+
+.venv
+venv
+env
+
+Dockerfile
+.dockerignore
