@@ -28,7 +28,10 @@ def upload_clearml_artifact(artifact_name: str, local_path: Path) -> None:
   task = Task.current_task()
   if task is None:
     return
-  task.upload_artifact(name=artifact_name, artifact_object=str(local_path))
+  try:
+    task.upload_artifact(name=artifact_name, artifact_object=str(local_path))
+  except Exception as e:
+    print(f"[WARN] Failed to upload ClearML artifact '{artifact_name}': {e}")
 
 
 class _OnnxMotionModel(nn.Module):

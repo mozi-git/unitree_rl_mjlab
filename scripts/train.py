@@ -10,6 +10,10 @@ from typing import Literal, cast
 
 import tyro
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+  sys.path.insert(0, str(_REPO_ROOT))
+
 from mjlab.envs import ManagerBasedRlEnv, ManagerBasedRlEnvCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlBaseRunnerCfg, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
@@ -36,6 +40,7 @@ class TrainConfig:
   enable_nan_guard: bool = False
   clearml: bool = False
   clearml_project: str = "mjlab"
+  clearml_output_uri: str | None = None
   clearml_tags: tuple[str, ...] = ()
   clearml_task_id: str | None = None
   clearml_checkpoint_name: str | None = None
@@ -146,12 +151,15 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if rank == 0 and clearml_requested:
     task_name = task_id if not cfg.agent.run_name else f"{task_id}_{cfg.agent.run_name}"
     clearml_project = str(agent_cfg.get("clearml_project", cfg.clearml_project))
+    clearml_output_uri = agent_cfg.get("clearml_output_uri", cfg.clearml_output_uri)
+    clearml_output_uri = str(clearml_output_uri) if clearml_output_uri else False
     clearml_tags = tuple(agent_cfg.get("clearml_tags", cfg.clearml_tags))
     clearml_task_id = init_clearml_task(
       project_name=clearml_project,
       task_name=task_name,
       tags=clearml_tags,
       auto_connect_frameworks={"tensorboard": True},
+      output_uri=clearml_output_uri,
     )
     if clearml_task_id is not None:
       connect_clearml_configuration(
@@ -169,6 +177,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
           "enable_nan_guard": cfg.enable_nan_guard,
           "clearml": cfg.clearml,
           "clearml_project": clearml_project,
+          "clearml_output_uri": clearml_output_uri,
           "clearml_tags": clearml_tags,
           "clearml_task_id": cfg.clearml_task_id,
           "clearml_checkpoint_name": cfg.clearml_checkpoint_name,
@@ -181,7 +190,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
       print(f"[INFO] ClearML task initialized: {clearml_task_id}")
     else:
       print(
-        "[WARN] ClearML logging requested, but the clearml package is unavailable. "
+        "[WARN] ClearML logging requested, but ClearML could not be initialized. "
         "Continuing with local TensorBoard logging only."
       )
 

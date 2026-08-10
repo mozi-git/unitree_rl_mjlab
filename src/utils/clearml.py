@@ -13,22 +13,32 @@ def init_clearml_task(
   task_name: str,
   tags: Sequence[str] = (),
   auto_connect_frameworks: bool | Mapping[str, bool | dict] = True,
+  output_uri: str | bool | None = False,
 ) -> str | None:
   """Initialize a ClearML task and return its task ID.
 
-  Returns None when the clearml package is not installed.
+  Returns None when the clearml package is not installed or initialization fails.
   """
   try:
     from clearml import Task
   except ImportError:
     return None
 
-  task = Task.init(
-    project_name=project_name,
-    task_name=task_name,
-    task_type=Task.TaskTypes.training,
-    auto_connect_frameworks=auto_connect_frameworks,
-  )
+  init_kwargs = {
+    "project_name": project_name,
+    "task_name": task_name,
+    "task_type": Task.TaskTypes.training,
+    "auto_connect_frameworks": auto_connect_frameworks,
+  }
+  if output_uri is not None:
+    init_kwargs["output_uri"] = output_uri
+
+  try:
+    task = Task.init(**init_kwargs)
+  except Exception as e:
+    print(f"[WARN] ClearML task initialization failed: {e}")
+    return None
+
   if tags:
     task.add_tags(list(tags))
   return str(task.id)
@@ -48,7 +58,10 @@ def connect_clearml_configuration(
   task = Task.get_task(task_id=task_id) if task_id else Task.current_task()
   if task is None:
     return
-  task.connect(dict(configuration), name=section_name)
+  try:
+    task.connect(dict(configuration), name=section_name)
+  except Exception as e:
+    print(f"[WARN] Failed to attach ClearML configuration '{section_name}': {e}")
 
 
 def upload_clearml_artifact(
@@ -68,7 +81,10 @@ def upload_clearml_artifact(
   task = Task.get_task(task_id=task_id) if task_id else Task.current_task()
   if task is None:
     return
-  task.upload_artifact(name=artifact_name, artifact_object=str(local_path))
+  try:
+    task.upload_artifact(name=artifact_name, artifact_object=str(local_path))
+  except Exception as e:
+    print(f"[WARN] Failed to upload ClearML artifact '{artifact_name}': {e}")
 
 
 def get_clearml_checkpoint_path(
