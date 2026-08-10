@@ -345,7 +345,10 @@ class variable_posture:
     assert default_joint_pos is not None
     self.default_joint_pos = default_joint_pos
 
-    _, joint_names = asset.find_joints(cfg.params["asset_cfg"].joint_names)
+    asset_cfg = cfg.params["asset_cfg"]
+    joint_ids = asset_cfg.joint_ids
+    assert joint_ids is not None
+    joint_names = [asset.joint_names[int(i)] for i in joint_ids]
 
     _, _, std_standing = resolve_matching_names_values(
       data=cfg.params["std_standing"],
@@ -425,4 +428,3 @@ def stand_still(
             scale = (total_command <= command_threshold).float()
             reward *= scale
     return reward
-

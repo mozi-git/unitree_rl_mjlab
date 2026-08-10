@@ -1,4 +1,4 @@
-"""Unitree H2 constants."""
+"""Unitree H2 INFIFORCE constants."""
 
 from pathlib import Path
 
@@ -18,15 +18,15 @@ from src import SRC_PATH
 # URDF and assets.
 ##
 
-H2_URDF: Path = (
+H2_INFIFORCE_URDF: Path = (
   SRC_PATH / "assets" / "robots" / "unitree_h2_infiforce" / "urdf" / "H2.urdf"
 )
-assert H2_URDF.exists()
+assert H2_INFIFORCE_URDF.exists()
 
 
 def get_assets(meshdir: str) -> dict[str, bytes]:
   assets: dict[str, bytes] = {}
-  update_assets(assets, H2_URDF.parent / "meshes", meshdir)
+  update_assets(assets, H2_INFIFORCE_URDF.parent / "meshes", meshdir)
   return assets
 
 
@@ -97,7 +97,7 @@ def _add_foot_capsules(spec: mujoco.MjSpec) -> None:
 
 
 def get_spec() -> mujoco.MjSpec:
-  spec = mujoco.MjSpec.from_file(str(H2_URDF))
+  spec = mujoco.MjSpec.from_file(str(H2_INFIFORCE_URDF))
   spec.assets = get_assets(spec.meshdir)
 
   pelvis = spec.body("pelvis")
@@ -463,7 +463,7 @@ H2_ARTICULATION = EntityArticulationInfoCfg(
 )
 
 
-def get_h2_robot_cfg() -> EntityCfg:
+def get_h2_infiforce_robot_cfg() -> EntityCfg:
   return EntityCfg(
     init_state=KNEES_BENT_KEYFRAME,
     collisions=(FULL_COLLISION,),
@@ -479,7 +479,7 @@ def get_h2_robot_cfg() -> EntityCfg:
 # stiffer) gains above that rule would have collapsed the hip pitch range from 31 deg to
 # 4.2 deg and put a walking gait kinematically out of reach. The values below are stated
 # directly and preserve the ranges the policy already had.
-H2_ACTION_SCALE: dict[str, float] = {
+H2_INFIFORCE_ACTION_SCALE: dict[str, float] = {
   # Lower body -- the velocity task's 15-joint action space.
   ".*_hip_pitch_joint": 0.55,
   ".*_hip_roll_joint": 0.35,
@@ -510,6 +510,3 @@ H2_ACTION_SCALE: dict[str, float] = {
   "head_pitch_joint": 0.20,
   "head_yaw_joint": 0.20,
 }
-
-H2_INFIFORCE_ACTION_SCALE = H2_ACTION_SCALE
-get_h2_infiforce_robot_cfg = get_h2_robot_cfg
