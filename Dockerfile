@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_CONSTRAINT=/tmp/constraints-cu124.txt \
     MUJOCO_GL=egl
 
 WORKDIR /workspace/unitree_rl_mjlab
@@ -30,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY setup.py ./
+COPY docker/constraints-cu124.txt /tmp/constraints-cu124.txt
 RUN python -m pip install --upgrade pip setuptools wheel
 
 COPY . .
