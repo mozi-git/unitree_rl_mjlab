@@ -33,6 +33,12 @@ COPY setup.py ./
 RUN python -m pip install --upgrade pip setuptools wheel
 
 COPY . .
-RUN python -m pip install -e .
+RUN python -m pip install --no-deps "mjlab==1.2.0" \
+    && python -m pip install --no-deps \
+      "mujoco==3.8.0" \
+      "mujoco-warp==3.8.0" \
+    && python -m pip install \
+      "scipy" \
+    && python -m pip install --no-deps -e .
 
 CMD ["/bin/bash"]
