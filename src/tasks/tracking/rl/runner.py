@@ -14,7 +14,21 @@ from mjlab.rl.exporter_utils import (
 )
 from mjlab.rl.runner import MjlabOnPolicyRunner
 from mjlab.tasks.tracking.mdp import MotionCommand
-from src.utils.clearml import upload_clearml_artifact
+
+
+def upload_clearml_artifact(artifact_name: str, local_path: Path) -> None:
+  try:
+    from clearml import Task
+  except ImportError:
+    return
+
+  if not local_path.exists():
+    return
+
+  task = Task.current_task()
+  if task is None:
+    return
+  task.upload_artifact(name=artifact_name, artifact_object=str(local_path))
 
 
 class _OnnxMotionModel(nn.Module):

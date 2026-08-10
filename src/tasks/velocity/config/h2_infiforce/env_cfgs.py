@@ -15,6 +15,26 @@ from src.assets.robots.unitree_h2_infiforce.h2_constants import (
 from src.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 
+POSE_JOINT_NAMES = (
+  r".*_hip_pitch_joint",
+  r".*_hip_roll_joint",
+  r".*_hip_yaw_joint",
+  r".*_knee_joint",
+  r".*_ankle_pitch_joint",
+  r".*_ankle_roll_joint",
+  "waist_yaw_joint",
+  "waist_pitch_joint",
+  "waist_roll_joint",
+  r".*_shoulder_pitch_joint",
+  r".*_shoulder_roll_joint",
+  r".*_shoulder_yaw_joint",
+  r".*_elbow_joint",
+  r".*_wrist_roll_joint",
+  r".*_wrist_pitch_joint",
+  r".*_wrist_yaw_joint",
+)
+
+
 def unitree_h2_infiforce_rough_env_cfg(
   play: bool = False,
 ) -> ManagerBasedRlEnvCfg:
@@ -84,6 +104,7 @@ def unitree_h2_infiforce_rough_env_cfg(
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
 
+  cfg.rewards["pose"].params["asset_cfg"].joint_names = POSE_JOINT_NAMES
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
     r".*hip_pitch.*": 0.5,

@@ -40,13 +40,14 @@ RUN python -m pip install \
       "tqdm" \
       "tyro>=1.0.1" \
       "torchrunx>=0.3.4" \
-      "warp-lang>=1.12.0" \
+      "warp-lang==1.12.0" \
       "mujoco==3.8.0" \
       "mujoco-warp==3.8.0" \
       "trimesh>=4.8.3" \
       "viser>=1.0.24" \
       "mediapy>=1.2.6" \
       "imageio-ffmpeg" \
+      "clearml" \
       "numpy" \
       "tensordict" \
       "rsl-rl-lib==5.0.1" \
